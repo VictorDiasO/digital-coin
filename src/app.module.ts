@@ -4,10 +4,18 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { CoinsModule } from './coins/coins.module';
 import { ConfigModule } from '@nestjs/config';
+import { SupabaseService } from './database/supabase.service';
 
 @Module({
-  imports: [DatabaseModule, CoinsModule, ConfigModule.forRoot()],
+  imports: [
+    DatabaseModule,
+    CoinsModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, SupabaseService],
+  exports: [SupabaseService],
 })
 export class AppModule {}

@@ -1,34 +1,51 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { CoinsService } from './coins.service';
-import { CreateCoinDto } from './dto/create-coin.dto';
-import { UpdateCoinDto } from './dto/update-coin.dto';
+import {
+  TransferCoinsDto,
+  RewardCoinsDto,
+  ListMarketItemDto,
+  PurchaseItemDto,
+} from './dto';
 
 @Controller('coins')
 export class CoinsController {
   constructor(private readonly coinsService: CoinsService) {}
 
-  @Post()
-  create(@Body() createCoinDto: CreateCoinDto) {
-    return this.coinsService.create(createCoinDto);
+  @Get('balance/:userId')
+  async getBalance(@Param('userId') userId: string) {
+    return this.coinsService.getBalance(userId);
   }
 
-  @Get()
-  findAll() {
-    return this.coinsService.findAll();
+  @Post('transfer')
+  async transferCoins(@Body() dto: TransferCoinsDto) {
+    return this.coinsService.transferCoins(dto);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.coinsService.findOne(+id);
+  @Post('reward')
+  async rewardCoins(@Body() dto: RewardCoinsDto) {
+    return this.coinsService.rewardCoins(dto);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCoinDto: UpdateCoinDto) {
-    return this.coinsService.update(+id, updateCoinDto);
+  @Get('transactions/:userId')
+  async getTransactions(@Param('userId') userId: string) {
+    // Implementation using Drizzle to query transactions
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.coinsService.remove(+id);
+  @Post('market/list')
+  async listMarketItem(@Body() dto: ListMarketItemDto) {
+    // Implementation for listing items
+  }
+
+  @Post('market/purchase/:marketItemId')
+  async purchaseItem(
+    @Param('marketItemId') marketItemId: string,
+    @Body() dto: PurchaseItemDto,
+  ) {
+    return this.coinsService.purchaseItem(marketItemId, dto);
+  }
+
+  @Get('inventory/:userId')
+  async getInventory(@Param('userId') userId: string) {
+    // Implementation to get user inventory
   }
 }

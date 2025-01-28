@@ -1,65 +1,88 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { ConfigService } from '@nestjs/config';
+import { createClient } from '@supabase/supabase-js';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import * as postgres from 'postgres'; // Changed import syntax
+import * as schema from './schema';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-  private readonly supabase: SupabaseClient;
+  private supabaseClient;
+  private drizzleClient;
+  private connectionString: string;
 
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL ?? '',
-      process.env.SUPABASE_KEY ?? '',
-    );
+  constructor(private configService: ConfigService) {
+    this.connectionString =
+      this.configService.get<string>('SUPABASE_DB_URL') ?? '';
   }
 
-  onModuleInit() {
-    console.log('Supabase Client Connected');
+  async onModuleInit() {
+    await this.initializeClients();
+    await this.runMigrations();
   }
 
-  // Example: Get User Balance
-  async getUserBalance(userId: string) {
-    const { data, error } = await this.supabase
-      .from('user_balances')
-      .select('coins')
-      .eq('userId', userId)
-      .single();
+  private async initializeClients() {
+    try {
+      // Initialize Supabase client
+      this.supabaseClient = createClient(
+        this.configService.get<string>('SUPABASE_URL') ?? '',
+        this.configService.get<string>('SUPABASE_KEY') ?? '',
+      );
+      console.log(
+        'Supabase client initialized::: ',
+        this.configService.get<string>('SUPABASE_URL'),
+      );
+      console.log(
+        'Supabase client initialized::: ',
+        this.configService.get<string>('SUPABASE_KEY'),
+      );
+
+      // Initialize Drizzle ORM client with correct postgres syntax
+      const queryClient = postgres(this.connectionString);
+      this.drizzleClient = drizzle(queryClient, { schema });
+    } catch (error) {
+      console.error('Error initializing database clients:', error);
+      throw error;
+    }
+  }
+
+  private async runMigrations() {
+    try {
+      // const migrationClient = postgres(this.connectionString, { max: 1 });
+      // await migrate(drizzle(migrationClient), {
+      //   migrationsFolder: './supabase/migrations',
+      // });
+      // await migrationClient.end();
+    } catch (error) {
+      console.error('Error running migrations:', error);
+      throw error;
+    }
+  }
+
+  getClient() {
+    return this.drizzleClient;
+  }
+
+  getSupabase() {
+    return this.supabaseClient;
+  }
+
+  // Example of a Supabase storage operation
+  async uploadFile(bucketName: string, filePath: string, file: Buffer) {
+    const { data, error } = await this.supabaseClient.storage
+      .from(bucketName)
+      .upload(filePath, file);
 
     if (error) throw error;
     return data;
   }
 
-  // Example: Transfer Coins
-  async transferCoins(fromUserId: string, toUserId: string, amount: number) {
-    const { data: sender } = await this.supabase
-      .from('user_balances')
-      .select('coins')
-      .eq('userId', fromUserId)
-      .single();
-
-    if (!sender || sender.coins < amount) {
-      throw new Error('Insufficient balance');
-    }
-
-    const { error: deductError } = await this.supabase
-      .from('user_balances')
-      .update({ coins: sender.coins - amount })
-      .eq('userId', fromUserId);
-
-    if (deductError) throw deductError;
-
-    const { data: receiver } = await this.supabase
-      .from('user_balances')
-      .select('coins')
-      .eq('userId', toUserId)
-      .single();
-
-    const { error: addError } = await this.supabase
-      .from('user_balances')
-      .update({ coins: receiver?.coins + amount })
-      .eq('userId', toUserId);
-
-    if (addError) throw addError;
-
-    return { message: 'Transfer successful' };
+  // Example of a Supabase auth operation
+  async getUserById(userId: string) {
+    const { data, error } =
+      await this.supabaseClient.auth.admin.getUserById(userId);
+    if (error) throw error;
+    return data.user;
   }
 }
