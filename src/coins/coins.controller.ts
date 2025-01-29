@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { CoinsService } from './coins.service';
 import {
   TransferCoinsDto,
@@ -6,7 +6,6 @@ import {
   ListMarketItemDto,
   PurchaseItemDto,
 } from './dto';
-
 @Controller('coins')
 export class CoinsController {
   constructor(private readonly coinsService: CoinsService) {}
@@ -28,7 +27,7 @@ export class CoinsController {
 
   @Get('transactions/:userId')
   async getTransactions(@Param('userId') userId: string) {
-    // Implementation using Drizzle to query transactions
+    return this.coinsService.getTransactions(userId);
   }
 
   @Post('market/list')
@@ -46,6 +45,6 @@ export class CoinsController {
 
   @Get('inventory/:userId')
   async getInventory(@Param('userId') userId: string) {
-    // Implementation to get user inventory
+    return this.coinsService.getInventory(userId);
   }
 }

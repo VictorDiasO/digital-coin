@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../database/supabase.service';
 import * as schema from '../database/schema';
-import { and, eq, gte } from 'drizzle-orm';
+import { and, desc, eq, gte, or } from 'drizzle-orm';
 import { PurchaseItemDto, RewardCoinsDto, TransferCoinsDto } from './dto';
+import { OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CoinsService {
@@ -16,6 +17,12 @@ export class CoinsService {
       .from(schema.userBalances)
       .where(eq(schema.userBalances.userId, userId));
     return balance?.coins || 0;
+  }
+
+  @OnEvent('coins.transfer')
+  handleTransferEvent(payload: TransferCoinsDto) {
+    // Send notification to both users
+    console.log(`Transfer of ${payload.amount} coins completed`);
   }
 
   async transferCoins(dto: TransferCoinsDto) {
@@ -142,6 +149,26 @@ export class CoinsService {
       }
 
       return { success: true };
+    });
+  }
+
+  async getTransactions(userId: string) {
+    const db = this.supabase.getClient();
+    return db.query.transactions.findMany({
+      where: or(
+        eq(schema.transactions.fromUserId, userId),
+        eq(schema.transactions.toUserId, userId),
+      ),
+      orderBy: desc(schema.transactions.createdAt),
+      limit: 100,
+    });
+  }
+
+  async getInventory(userId: string) {
+    const db = this.supabase.getClient();
+    return db.query.userInventory.findMany({
+      where: eq(schema.userInventory.userId, userId),
+      with: { item: true },
     });
   }
 }

@@ -2,7 +2,8 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import * as postgres from 'postgres'; // Changed import syntax
+// import * as postgres from 'postgres'; // Changed import syntax
+const postgres = require('postgres'); // Changed import syntax
 import * as schema from './schema';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
